@@ -1,0 +1,892 @@
+---
+title: "2017.11 Larval Pyrene metamorphosis"
+author: "Mikaela Nordborg"
+date: "27/01/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(dplyr)
+library(bayesnec) #devtools::install_github("open-AIMS/bayesnec")
+require(tidyverse)
+library(beepr)
+inv.log10 <- function(x){10^x}
+```
+
+
+## Background
+Analysis of data sets from A. millepora planula larvae experiments performed between 2016 and 2019 to test the effects of filtered seawater (FSW) solutions containing individual aromatic hydrocarbons in the presence and absence of ultraviolet radiation (+UV vs -UV). All analysis performed in (at least) four steps:
+    - Model fitting, evaluation and interpretation of -UVR/PAR only treatment data
+    - Model fitting, evaluation and interpretation of +UVR treatment data
+    - Extraction of no effect concentration (NEC), 10 and 50% effect or lethal concentrations (EC/LCx) and associated 95% credible intervals.
+    - Comparison of posterior distributions of extracted NEC and 50% threshold concentrations for each light treatment (+/-UV).
+
+Compromised or invalid replicates identified prior to data import into R but removal is performed after import. Please see methods of main paper and *Table ___*, Supplementary materials for further details. Control treatment concentration-values set to 0.1 (~1/2 of the lowest treatment concentration used across all assays) to avoid potential issues with transformations after data import.Treatment concentrations log10 transformed and analysed on log-scale due to the spacing of treatment concentrations and range covered (equal to or larger than 3 orders of magnitude).
+
+
+A majority of the data sets consist of binomial data and the following terms are used throughout:
+    year = year and month experiment was performed
+    endpoint = endpoint assessed
+    factor = light treatment used
+        PAR = -UVR/in the absence of UV light
+        UV = +UVR/in the presence of UV light
+    nom.x = nominal treatment or treatment concentration used (eg FSW or 0.01% DMSO controls)
+    raw.x = time averaged, measured treatment concentration in μg L-1
+    log.x = transformed, time-averaged, treatment concentrations (measured in μg L-1)
+    suc = number of successes in sample (ie number of successfully metamorphosed larvae), generally a log10-transformation used
+    tot = total number of organisms/larvae & recruits in sample at time of assessment
+    prop = proportion of successes out of total tries/larvae in the sample
+
+
+Data for some compounds available for several years and/or months. Each data set was analysed separately.
+
+
+Analysis performed by Mikaela Nordborg and Dr. Rebecca Fisher.
+
+
+## Packages used and installation of latest version of bayesnec
+
+Analysis performed using package bayesnec and it's dependencies in R Version 4.0.3. The latest version of bayesnec and all dependencies were installed prior to start of analysis (27 January 2021).
+
+
+## Analysis
+
+### Import data, perform data preparation and check data types
+
+Import data, wrangle and do quick initial checks
+```{r}
+data.Pyr.17Nov.meta.raw<- read_csv("Data/2017.11_AM_pyr_meta.csv") %>% 
+  data.frame() %>% 
+  dplyr::mutate(raw.x=as.numeric(as.character(raw.x)),
+                raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                nom.x=as.factor(as.character(nom.x)),
+                factor=as.factor(as.character(factor)),
+                suc=as.integer(suc), # ensure integers
+                log.x=log10(raw.x), # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+                tot=as.integer(tot))
+
+
+save(data.Pyr.17Nov.meta.raw, file = "2017.11_Pyr_data_meta_raw.RData")
+
+#Check that all columns have been assigned the correct data type & that adding 0.1 to raw.x controls worked
+str(data.Pyr.17Nov.meta.raw)
+head(data.Pyr.17Nov.meta.raw)
+tail(data.Pyr.17Nov.meta.raw)
+```
+
+
+Check for differences between 0.01% DMSO and FSW controls
+```{r}
+load("2017.11_Pyr_data_meta_raw.RData")
+
+#Remove treatment replicates from data set
+data.Pyr.17Nov.meta.controls <- data.Pyr.17Nov.meta.raw %>% 
+  dplyr::filter(nom.x!="Treatment")
+
+#Plot to compare means and CIs
+ggplot(data.Pyr.17Nov.meta.controls, aes(x=nom.x, y=prop, fill=factor)) + 
+    geom_boxplot()
+
+#Filer in preparation for t-tests
+Pyr.17Nov.meta.controls.PAR.FSW <- data.Pyr.17Nov.meta.controls %>% 
+  dplyr::filter(factor=="PAR" & nom.x=="FSW")
+Pyr.17Nov.meta.controls.PAR.DMSO <- data.Pyr.17Nov.meta.controls %>% 
+  dplyr::filter(factor=="PAR" & nom.x!="FSW")
+
+Pyr.17Nov.meta.controls.UV.FSW <- data.Pyr.17Nov.meta.controls %>% 
+  dplyr::filter(factor=="UVR" & nom.x=="FSW")
+Pyr.17Nov.meta.controls.UV.DMSO <- data.Pyr.17Nov.meta.controls %>% 
+  dplyr::filter(factor=="UVR" & nom.x!="FSW")
+
+#Perform t-test to check for differences between control groups
+brms.fit <- brm(suc | trials(tot)  ~ nom.x*factor, data = data.Pyr.17Nov.meta.controls, family = binomial())
+new.dat <- data.frame(expand.grid(list(nom.x=c("FSW", "0.01% DMSO"),  "factor"=c("UVR", "PAR"),"tot"=1)))
+post_preds <- posterior_epred(brms.fit, newdata=new.dat) %>% 
+  data.frame
+
+colnames(post_preds) <- paste(new.dat$nom.x, new.dat$factor)
+pred_dat <-  post_preds %>% 
+  pivot_longer(everything())
+
+ggplot(pred_dat, aes(x=value)) + 
+  geom_density(aes(group=name, colour=name, fill = name), alpha=0.3) +
+  scale_x_continuous(labels = scales::percent, name ="Average metamorphosis success") +
+  scale_y_continuous(name ="Posterior probability density") +
+  theme_classic() 
+```
+
+
+Extract the median metamorphosis success using the posterior probability for each control data set
+```{r}
+quantile(post_preds[,1], c(0.025, 0.5, 0.975)) #FSW UVR
+quantile(post_preds[,2], c(0.025, 0.5, 0.975)) #0.01% DMSO UVR
+quantile(post_preds[,3], c(0.025, 0.5, 0.975)) #FSW PAR
+quantile(post_preds[,4], c(0.025, 0.5, 0.975)) #0.01% DMSO PAR
+```
+
+Filter remaining data according to light treatment + whether replicates should be included in statistical analysis and save to RData-files:
+```{r}
+load("2017.11_Pyr_data_meta_raw.RData")
+
+#Remove FSW control replicates
+data.Pyr.17Nov.meta <- data.Pyr.17Nov.meta.raw %>% 
+  dplyr::filter(nom.x!="FSW")
+
+#Create -UVR data set and prep for use in model fitting
+data.Pyr.17Nov.meta.PAR.raw <- data.Pyr.17Nov.meta %>% 
+  dplyr::filter(factor=="PAR") 
+data.Pyr.17Nov.meta.PAR <- data.Pyr.17Nov.meta.PAR.raw %>% 
+  dplyr::filter(use_in_model=="Yes") 
+
+#Create +UVR data set and prep for use in model fitting
+data.Pyr.17Nov.meta.UV.raw <- data.Pyr.17Nov.meta %>% 
+  dplyr::filter(factor=="UVR") 
+data.Pyr.17Nov.meta.UV <- data.Pyr.17Nov.meta.UV.raw %>% 
+  dplyr::filter(use_in_model=="Yes") 
+
+#check that filtering worked
+View(data.Pyr.17Nov.meta.PAR)
+View(data.Pyr.17Nov.meta.UV)
+
+#Save complete data sets and data sets prepared for model fitting
+save(data.Pyr.17Nov.meta.PAR.raw, data.Pyr.17Nov.meta.UV.raw, data.Pyr.17Nov.meta.PAR,data.Pyr.17Nov.meta.UV, file = "2017.11_Pyr_data_meta_filtered.RData")
+
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### -UV/PAR
+
+#### Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+
+unique(data.Pyr.17Nov.meta.PAR$raw.x)
+par(mfrow=c(2,1))
+hist(data.Pyr.17Nov.meta.PAR$raw.x)
+hist(data.Pyr.17Nov.meta.PAR$suc/data.Pyr.17Nov.meta.PAR$tot)
+par(mfrow=c(1,1))
+plot(data.Pyr.17Nov.meta.PAR$log.x, data.Pyr.17Nov.meta.PAR$prop) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+##### Fit models
+
+
+###### Binomial
+
+Fit a model-averaged NEC-model (MANEC)
+```{r, eval=FALSE}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+library(bayesnec)
+library(beepr)
+out.Pyr.17Nov.meta.PAR.all <- bnec(data = data.Pyr.17Nov.meta.PAR, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all")
+save(out.Pyr.17Nov.meta.PAR.all, file = "2017.11_Pyr_meta_PAR_modfit_all.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all.RData")
+
+rhat(out.Pyr.17Nov.meta.PAR.all, rhat_cutoff = 1.03)
+```
+
+
+
+Check overdispersion estimates and candidate model weights
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all.RData")
+
+out.Pyr.17Nov.meta.PAR.all$mod_stats
+summary(out.Pyr.17Nov.meta.PAR.all)
+```
+
+*Any evidence of overdispersion?*
+    - All candidate models are overdispersed.
+
+
+
+###### Betabinomial
+
+Re-fit MANEC using a distribution appropriate for overdispersed binomial data
+```{r}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+library(bayesnec)
+library(beepr)
+out.Pyr.17Nov.meta.PAR.all.od <- bnec(data = data.Pyr.17Nov.meta.PAR, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all",
+                        family = beta_binomial2)
+
+save(out.Pyr.17Nov.meta.PAR.all.od, file = "2017.11_Pyr_meta_PAR_modfit_all_OD.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all_OD.RData")
+rhat(out.Pyr.17Nov.meta.PAR.all.od, rhat_cutoff = 1.03)
+```
+
+
+Check chain mixing and model summaries for remaining candidate models
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all_OD.RData")
+
+check_chains(out.Pyr.17Nov.meta.PAR.all.od, filename = "2017.11_Pyr_meta_PAR_chains_modfit_all_OD") #change this if any candidate models were discarded based on Rhat: 
+out.Pyr.17Nov.meta.PAR.all.od$mod_stats
+summary(out.Pyr.17Nov.meta.PAR.all.od)
+```
+
+
+*Any evidence of non-convergence, poor chain mixing or autocorrelation?*
+    - Some evidence of model fit being unstable (but no distinctly bad chain mixing)
+    
+
+
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all_OD.RData")
+plot(out.Pyr.17Nov.meta.PAR.all.od, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+  
+Check if model median, credible intervals and NEC estimates are reasonable for candidate models compared to the raw data
+```{r}
+load("2017.11_Pyr_meta_PAR_modfit_all_OD.RData")
+pdf("2017.11_Pyr_meta_PAR_modfitplots_all_OD.pdf")
+plot(out.Pyr.17Nov.meta.PAR.all.od, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+
+
+###### Compare binomial and betabinomial MANECs and select which one to use
+
+Compare the amended OD MANEC to the MANEC fitted using the binomial distribution
+```{r}
+plot(out.Pyr.17Nov.meta.PAR.all, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+plot(out.Pyr.17Nov.meta.PAR.all.od, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+*Did using the betabinomial distribution improve MANEC model fit compared to the MANEC fit using the binomial distribution?*
+    -> Yes.
+
+
+Rename model output for selected model (binomial or betabinomial)
+```{r}
+out.Pyr.17Nov.meta.PAR <- out.Pyr.17Nov.meta.PAR.all.od
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out.Pyr.17Nov.meta.PAR.NEC <- pull_out(out.Pyr.17Nov.meta.PAR, model = c("nec"))
+```
+
+
+```{r}
+plot(out.Pyr.17Nov.meta.PAR.NEC, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out.Pyr.17Nov.meta.PAR, out.Pyr.17Nov.meta.PAR.NEC, file = "2017.11_Pyr_meta_PAR_modfits_final.RData")
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+```
+
+
+
+#### Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+NEC.Anth.16Nov.meta.PAR <- out.Pyr.17Nov.meta.PAR.NEC$w_nec
+NEC.Anth.16Nov.meta.PAR <- 10^NEC.Anth.16Nov.meta.PAR #if using log10(raw.x)
+#NEC.Anth.16Nov.meta.PAR <- exp(NEC.Anth.16Nov.meta.PAR) #if using log(raw.x))
+NEC.Anth.16Nov.meta.PAR
+```
+
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+EC10.Anth.16Nov.meta.PAR <- ecx(out.Pyr.17Nov.meta.PAR, ecx_val = 10, type = "absolute")
+EC10.Anth.16Nov.meta.PAR <- 10^EC10.Anth.16Nov.meta.PAR #if using log10(raw.x)
+#EC10.Anth.16Nov.meta.PAR <- exp(EC10.Anth.16Nov.meta.PAR) #if using log(raw.x))
+EC10.Anth.16Nov.meta.PAR
+```
+
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+EC50.Anth.16Nov.meta.PAR <- ecx(out.Pyr.17Nov.meta.PAR, ecx_val = 50, type = "absolute")
+EC50.Anth.16Nov.meta.PAR <- 10^EC50.Anth.16Nov.meta.PAR #if using log10(raw.x)
+#EC50.Anth.16Nov.meta.PAR <- exp(EC50.Anth.16Nov.meta.PAR) #if using log(raw.x))
+EC50.Anth.16Nov.meta.PAR
+```
+    
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### +UV/UV
+
+#### Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+
+unique(data.Pyr.17Nov.meta.UV$raw.x)
+par(mfrow=c(2,1))
+hist(data.Pyr.17Nov.meta.UV$raw.x)
+hist(data.Pyr.17Nov.meta.UV$suc/data.Pyr.17Nov.meta.UV$tot)
+par(mfrow=c(1,1))
+plot(data.Pyr.17Nov.meta.UV$log.x, data.Pyr.17Nov.meta.UV$prop) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+##### Fit models
+
+###### Binomial
+
+Fit a model-averaged NEC-model (MANEC)
+```{r, eval=FALSE}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+
+library(bayesnec)
+library(beepr)
+out.Pyr.17Nov.meta.UV.all <- bnec(data = data.Pyr.17Nov.meta.UV, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all")
+
+save(out.Pyr.17Nov.meta.UV.all, file = "2017.11_Pyr_meta_UV_modfit_all.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all.RData")
+
+rhat(out.Pyr.17Nov.meta.UV.all, rhat_cutoff = 1.03)
+```
+
+
+
+Check overdispersion estimates and candidate model weights
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all.RData")
+
+out.Pyr.17Nov.meta.UV.all$mod_stats
+summary(out.Pyr.17Nov.meta.UV.all)
+```
+
+*Any evidence of overdispersion?*
+    - All candidate models are overdispersed.
+
+
+```{r}
+plot(out.Pyr.17Nov.meta.UV.all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+
+###### Betabinomial
+
+Re-fit MANEC using a distribution appropriate for overdispersed binomial data
+```{r}
+load(file = "2017.11_Pyr_data_meta_filtered.RData")
+library(bayesnec)
+library(beepr)
+out.Pyr.17Nov.meta.UV.all.od <- bnec(data = data.Pyr.17Nov.meta.UV, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all",
+                        family = beta_binomial2)
+
+save(out.Pyr.17Nov.meta.UV.all.od, file = "2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+
+rhat(out.Pyr.17Nov.meta.UV.all.od, rhat_cutoff = 1.03)
+```
+
+Drop candidate models that failed the RHat test (if required)
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+
+out.Pyr.17Nov.meta.UV.all.od2 <- amend(out.Pyr.17Nov.meta.UV.all.od, drop = c("ecxll5" )) #add in bad candidate models in drop = c())
+save(out.Pyr.17Nov.meta.UV.all.od, out.Pyr.17Nov.meta.UV.all.od2, file = "2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+```
+
+
+Check chain mixing for remaining candidate models
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+
+check_chains(out.Pyr.17Nov.meta.UV.all.od2, filename = "2017.11_Pyr_meta_UV_chains_modfit_all_OD") #change this if any candidate models were discarded based on Rhat: out.Pyr.17Nov.meta.UV.all.od2
+out.Pyr.17Nov.meta.UV.all.od2$mod_stats
+```
+
+*Any evidence of non-convergence, poor chain mixing or autocorrelation?*
+    - model =         include/unclear/exclude     (reason for potential exclusion)
+    
+        - ecxwb1 =          include           (very minor evidence of poor chain mixing)
+        - ecxll4 =          include           (very minor evidence of poor chain mixing)
+        - ecxhormebc5 =     exclude           (evidence of poor chain mixing)
+        
+
+
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+plot(out.Pyr.17Nov.meta.UV.all.od2, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+    
+Check if model median, credible intervals and NEC estimates are reasonable for candidate models compared to the raw data
+```{r}
+load("2017.11_Pyr_meta_UV_modfit_all_OD.RData")
+pdf("2017.11_Pyr_meta_UV_modfitplots_all_OD.pdf")
+plot(out.Pyr.17Nov.meta.UV.all.od2, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+Any models that are inappropriate for the data based on the model median and CIs?
+    - ecxlin
+
+
+Drop inappropriate models and models with non-convergence or very poor chain mixing (if required)
+```{r}
+out.Pyr.17Nov.meta.UV.mod.od <- amend(out.Pyr.17Nov.meta.UV.all.od2, drop = c("ecxhormebc5", "ecxlin"))
+```
+
+
+Compare MANEC containing all OD candidate models to the amended MANEC:
+```{r}
+plot(out.Pyr.17Nov.meta.UV.all.od, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+plot(out.Pyr.17Nov.meta.UV.mod.od, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+
+###### Compare binomial and betabinomial MANECs and select model to use
+
+Compare to MANEC fitted using the binomial distribution
+```{r}
+plot(out.Pyr.17Nov.meta.UV.all, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10)
+plot(out.Pyr.17Nov.meta.UV.mod.od, add_ec10 = FALSE, add_nec = FALSE, lxform = inv.log10)
+```
+
+
+*Did using the betabinomial distribution improve MANEC model fit compared to the MANEC fit using the binomial distribution?*
+    - Yes.
+
+
+Rename model output for selected model (binomial or betabinomial)
+```{r}
+out.Pyr.17Nov.meta.UV <- out.Pyr.17Nov.meta.UV.mod.od
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out.Pyr.17Nov.meta.UV.NEC <- pull_out(out.Pyr.17Nov.meta.UV, model = c("nec"))
+```
+
+
+```{r}
+plot(out.Pyr.17Nov.meta.UV.NEC, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out.Pyr.17Nov.meta.UV, out.Pyr.17Nov.meta.UV.NEC, file = "2017.11_Pyr_meta_UV_modfits_final.RData")
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+```
+
+
+
+#### Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+NEC.Anth.16Nov.meta.UV <- out.Pyr.17Nov.meta.UV.NEC$w_nec
+NEC.Anth.16Nov.meta.UV <- 10^NEC.Anth.16Nov.meta.UV #if using log10(raw.x)
+#NEC.Anth.16Nov.meta.UV <- exp(NEC.Anth.16Nov.meta.UV) #if using log(raw.x)
+NEC.Anth.16Nov.meta.UV
+```
+
+```{r}
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+EC10.Anth.16Nov.meta.UV <- ecx(out.Pyr.17Nov.meta.UV, ecx_val = 10, type = "absolute")
+EC10.Anth.16Nov.meta.UV <- 10^EC10.Anth.16Nov.meta.UV #if using log10(raw.x)
+#EC10.Anth.16Nov.meta.UV <- exp(EC10.Anth.16Nov.meta.UV) #if using log(raw.x)
+EC10.Anth.16Nov.meta.UV
+```
+
+```{r}
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+EC50.Anth.16Nov.meta.UV <- ecx(out.Pyr.17Nov.meta.UV, ecx_val = 50, type = "absolute")
+EC50.Anth.16Nov.meta.UV <- 10^EC50.Anth.16Nov.meta.UV #if using log10(raw.x)
+#EC50.Anth.16Nov.meta.UV <- exp(EC50.Anth.16Nov.meta.UV) #if using log(raw.x)
+EC50.Anth.16Nov.meta.UV
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### PLot results
+
+```{r}
+#For plotting results & model/threshold value comparisons
+library(ggplot2)
+library(scales)
+library(tidybayes)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+
+Extract complete posteriors for the fitted values using compare_posterior-function
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+
+pred.Pyr.17Nov.meta <- compare_posterior(x=list("PAR" = out.Pyr.17Nov.meta.PAR, "UVR" = out.Pyr.17Nov.meta.UV), comparison = "fitted", precision = 50)
+
+pred.Pyr.17Nov.meta.PAR <- pred.Pyr.17Nov.meta$posterior_data %>% 
+  dplyr::filter(model=="PAR")
+
+pred.Pyr.17Nov.meta.UV <- pred.Pyr.17Nov.meta$posterior_data %>% 
+  dplyr::filter(model=="UVR")
+
+
+
+pred.Pyr.17Nov.meta.NEC <- compare_posterior(list("PAR" = out.Pyr.17Nov.meta.PAR.NEC, "UVR" = out.Pyr.17Nov.meta.UV.NEC), comparison = "fitted", precision = 50)
+
+pred.Pyr.17Nov.meta.PAR.NEC <- pred.Pyr.17Nov.meta.NEC$posterior_data %>% 
+  dplyr::filter(model=="PAR")
+pred.Pyr.17Nov.meta.UV.NEC <- pred.Pyr.17Nov.meta.NEC$posterior_data %>% 
+ dplyr::filter(model=="UVR")
+
+
+save(pred.Pyr.17Nov.meta, pred.Pyr.17Nov.meta.PAR, pred.Pyr.17Nov.meta.UV, pred.Pyr.17Nov.meta.PAR.NEC, pred.Pyr.17Nov.meta.UV.NEC, file = "2017.11_Pyr_meta_predvals.RData") # pred.Pyr.17Nov.meta.NEC, pred.Pyr.17Nov.meta.PAR.NEC, pred.Pyr.17Nov.meta.UV.NEC <- add these back in once UV-section is working
+
+load("2017.11_Pyr_meta_predvals.RData")
+str(pred.Pyr.17Nov.meta.PAR)
+str(pred.Pyr.17Nov.meta.UV)
+```
+
+
+#### Complete subset-MANEC plot
+
+```{r}
+load("2017.11_Pyr_data_meta_filtered.RData")
+load("2017.11_Pyr_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.PAR$x, ymin=pred.Pyr.17Nov.meta.PAR$Q2.5, ymax=pred.Pyr.17Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.UV$x, ymin=pred.Pyr.17Nov.meta.UV$Q2.5, ymax=pred.Pyr.17Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.PAR$x, y=pred.Pyr.17Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.UV$x, y=pred.Pyr.17Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Pyr.17Nov.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Pyr.17Nov.meta.PAR.raw$tot*0.2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = data.Pyr.17Nov.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Pyr.17Nov.meta.UV.raw$tot*0.22, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(Larval~metamorphosis~("%")),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Pyr.17Nov.meta.all <- p.all
+plot.Pyr.17Nov.meta.all
+```
+
+
+#### NEC subset-MANEC plot
+
+```{r}
+load("2017.11_Pyr_data_meta_filtered.RData")
+load("2017.11_Pyr_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.PAR.NEC$x, ymin=pred.Pyr.17Nov.meta.PAR.NEC$Q2.5, ymax=pred.Pyr.17Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.UV.NEC$x, ymin=pred.Pyr.17Nov.meta.UV.NEC$Q2.5, ymax=pred.Pyr.17Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.PAR.NEC$x, y=pred.Pyr.17Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.UV.NEC$x, y=pred.Pyr.17Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Pyr.17Nov.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Pyr.17Nov.meta.PAR.raw$tot*0.2, position=position_jitter(width = .025, height=0.03))
+p.NEC= p.NEC+ geom_point(data = data.Pyr.17Nov.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Pyr.17Nov.meta.UV.raw$tot*0.22, position=position_jitter(width = .025, height=0.03))
+
+
+p.NEC = p.NEC+ labs(x=expression(Concentration~(μg~"L"^{-1})),
+              y=expression(Larval~metamorphosis~("%")),
+              subtitle="c)")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Pyr.17Nov.meta.NEC <- p.NEC
+plot.Pyr.17Nov.meta.NEC
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### Compare +/-UV posteriors
+
+#### EC50
+
+Perform comparison of posterior distributions for metamorphosis EC50
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+
+comp.Pyr.17Nov.meta.EC50 <- compare_posterior(x=list("PAR" = out.Pyr.17Nov.meta.PAR, "UVR" = out.Pyr.17Nov.meta.UV), comparison = "ecx", ecx_val = 50)
+save(comp.Pyr.17Nov.meta.EC50, file = "2017.11_Pyr_meta_posterior_comp_EC50.RData")
+comp.Pyr.17Nov.meta.EC50$prob_diff
+```
+
+Table shows the % likelihood that the point estimate calculated (NEC, EC/LC10 or EC/LC50) for model A (in top row) is smaller than the point estimate calculated for model B, C, etc (in left hand column). 
+
+*Is EC50 +UVR lower than the EC50 -UVR?*
+    - Yes, with a likelihood of 83.63%
+
+
+Create a custom results plot of the EC50 comparison
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Pyr.17Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 12), name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 8.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 83.63%", x = 0.55, y = 6.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Pyr.17Nov.meta.EC50 <- p.comp.EC50
+comp.plot.Pyr.17Nov.meta.EC50
+```
+
+
+Create a custom plot of the EC50 comparisons differences posterior density
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50.diff = ggplot(comp.Pyr.17Nov.meta.EC50$diff_data, aes(x=diff)) +
+  geom_density(aes(x=diff, fill = 'grey'), alpha=0.4) + 
+  geom_vline(xintercept = 0, color = "red", lty = 2) + 
+  theme_light()
+
+p.comp.EC50.diff = p.comp.EC50.diff + scale_fill_manual( values = c("grey", "grey")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue4", "grey","grey", "grey","grey")) + 
+  theme(legend.position="none")
+p.comp.EC50.diff = p.comp.EC50.diff + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50.diff = p.comp.EC50.diff + scale_y_continuous(name = "Differences posterior density") 
+p.comp.EC50.diff = p.comp.EC50.diff + scale_x_continuous(name = "Standardized effect size") 
+
+
+#Rename & show plot
+comp.plot.Pyr.17Nov.meta.EC50.diff <- p.comp.EC50.diff
+comp.plot.Pyr.17Nov.meta.EC50.diff
+```
+
+
+#### NEC
+
+Perform comparison of posterior distributions for metamorphosis NEC
+```{r}
+load("2017.11_Pyr_meta_PAR_modfits_final.RData")
+load("2017.11_Pyr_meta_UV_modfits_final.RData")
+
+comp.Pyr.17Nov.meta.NEC <- compare_posterior(x=list("PAR" = out.Pyr.17Nov.meta.PAR, "UVR" = out.Pyr.17Nov.meta.UV), comparison = "nec")
+save(comp.Pyr.17Nov.meta.NEC, file = "2017.11_Pyr_meta_posterior_comp_NEC.RData")
+comp.Pyr.17Nov.meta.NEC$prob_diff
+```
+Table shows the % likelihood that the point estimate calculated (NEC, EC/LC10 or EC/LC50) for model A (in top row) is smaller than the point estimate calculated for model B, C, etc (in left hand column). 
+
+*Is the NEC +UVR lower than the NEC -UVR?*
+    - Yes, with a likelihood of 70.25%.
+
+
+Create a custom results plot of the NEC comparison
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Pyr.17Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 10), name="Posterior probability density") 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(Threshold~concentration~(μg~"L"^{-1})),
+               subtitle="d)")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 8.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 70.25%", x = 0.55, y = 6.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Pyr.17Nov.meta.NEC <- p.comp.NEC
+comp.plot.Pyr.17Nov.meta.NEC
+```
+
+
+Create a custom plot of the NEC comparisons differences posterior density
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC.diff = ggplot(comp.Pyr.17Nov.meta.NEC$diff_data, aes(x=diff)) + 
+  geom_density(aes(x=diff, fill = 'grey'), alpha=0.4) + 
+  stat_pointinterval(aes(y = 0.00, x = comp.Pyr.17Nov.meta.NEC$df4.s$diff),.width = c(.66, .95)) +
+   geom_vline(xintercept = 0, color = "red", lty = 2) + theme_light()
+
+p.comp.NEC.diff = p.comp.NEC.diff + scale_fill_manual( values = c("grey", "grey")) +
+  scale_color_manual( values = c("grey","grey", "steelblue1","steelblue4", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.NEC.diff = p.comp.NEC.diff + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80")) 
+
+p.comp.NEC.diff = p.comp.NEC.diff + scale_y_continuous(name ="Differences posterior density") 
+p.comp.NEC.diff = p.comp.NEC.diff + scale_x_continuous(name ="Standardized effect size")
+
+
+#Rename & show plot
+comp.plot.Pyr.17Nov.meta.NEC.diff <- p.comp.NEC.diff
+comp.plot.Pyr.17Nov.meta.NEC.diff
+```
+
+
+## Full model comparison
+
+Extract the highest probability that the fitted values/posteriors for the two light treatments are different (at any tested x-value):
+```{r}
+load("2017.11_Pyr_meta_predvals.RData")
+
+diff.prob.Pyr.17Nov.meta <- max(pred.Pyr.17Nov.meta$prob_diff$prob)
+diff.prob.Pyr.17Nov.meta
+```
+
+
+Plot the posterior difference estimate for the UV and PAR light treatments across the treatment concentrations tested
+```{r}
+load("2017.11_Pyr_meta_predvals.RData")
+
+pred.Pyr.17Nov.meta$diff_data$inv.x <- 10^pred.Pyr.17Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Pyr.17Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() #name = "Posterior differences estimate"
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(Treatment~concentration~(μg~"L"^{-1})),
+                  y=expression(), #Posterior~difference~estimate
+                  subtitle="f) Pyrene")
+
+plot.Pyr.17Nov.meta.diff.est <- p.comp.diff
+plot.Pyr.17Nov.meta.diff.est
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+## Create layouts and export (if required)
+
+
+Create layout to view result plots side-by-side
+```{r}
+layout.Pyr.17Nov.meta <- ggarrange(plot.Pyr.17Nov.meta.all, comp.plot.Pyr.17Nov.meta.EC50, plot.Pyr.17Nov.meta.NEC, comp.plot.Pyr.17Nov.meta.NEC,
+          ncol = 2, nrow = 2,
+          widths = c(0.5, 0.5))
+layout.Pyr.17Nov.meta
+```
+

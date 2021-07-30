@@ -1,0 +1,574 @@
+---
+title: "2019.11 Larval Toluene 48 h fragmentation"
+author: "Mikaela Nordborg"
+date: "23/02/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(dplyr)
+library(bayesnec) #devtools::install_github("open-AIMS/bayesnec")
+require(tidyverse)
+library(beepr)
+inv.log10 <- function(x){10^x}
+```
+
+## Background
+Analysis of data sets from A. millepora planula larvae experiments performed between 2016 and 2019 to test the effects of filtered seawater (FSW) solutions containing individual aromatic hydrocarbons in the presence and absence of ultraviolet radiation (+UV vs -UV). All analysis performed in (at least) four steps:
+    - Model fitting, evaluation and interpretation of -UVR/PAR only treatment data
+    - Model fitting, evaluation and interpretation of +UVR treatment data
+    - Extraction of no effect concentration (NEC), 10 and 50% effect or lethal concentrations (EC/LCx) and associated 95% credible intervals.
+    - Comparison of posterior distributions of extracted NEC and 50% threshold concentrations for each light treatment (+/-UV).
+
+Compromised or invalid replicates identified prior to data import into R but removal is performed after import. Please see methods of main paper and *Table ___*, Supplementary materials for further details. Control treatment concentration-values set to 0.1 (~1/2 of the lowest treatment concentration used across all assays) to avoid potential issues with transformations after data import.Treatment concentrations log10 transformed and analysed on log-scale due to the spacing of treatment concentrations and range covered (equal to or larger than 3 orders of magnitude).
+
+
+A majority of the data sets consist of binomial data and the following terms are used throughout:
+    year = year and month experiment was performed
+    endpoint = endpoint assessed
+    factor = light treatment used
+        PAR = -UVR/in the absence of UV light
+        UV = +UVR/in the presence of UV light
+    nom.x = nominal treatment or treatment concentration used (eg FSW or 0.01% DMSO controls)
+    raw.x = time averaged, measured treatment concentration in μg L-1
+    log.x = transformed, time-averaged, treatment concentrations (measured in μg L-1)
+    suc = number of successes in sample (ie number of average sized larvae), generally a log10-transformation used
+    tot = total number of organisms/larvae & recruits in sample at time of assessment
+    prop = proportion of successes out of total tries/larvae in the sample
+
+
+Data for some compounds available for several years and/or months. Each data set was analysed separately.
+
+
+Analysis performed by Mikaela Nordborg and Dr. Rebecca Fisher.
+
+
+## Packages used and installation of latest version of bayesnec
+
+Analysis performed using package bayesnec and it's dependencies in R Version 4.0.3. The latest version of bayesnec and all dependencies were installed prior to start of analysis (28 January 2021).
+
+
+
+## Analysis
+
+### Import data, perform data preparation and check data types
+
+Import data, wrangle and do quick initial checks
+```{r}
+data.Tol.19Nov.frag48.raw<- read_csv("Data/2019.11_AM_tolu_frags48h.csv") %>% 
+  data.frame() %>% 
+  dplyr::mutate(raw.x=as.numeric(as.character(raw.x)),
+                raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                nom.x=as.factor(as.character(nom.x)),
+                factor=as.factor(as.character(factor)),
+                suc=as.integer(suc), # ensure integers
+                log.x=log10(raw.x), # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+                tot=as.integer(tot))
+
+
+save(data.Tol.19Nov.frag48.raw, file = "2019.11_Tol_data_frag48_raw.RData")
+
+#Check that all columns have been assigned the correct data type & that adding 0.1 to raw.x controls worked
+str(data.Tol.19Nov.frag48.raw)
+head(data.Tol.19Nov.frag48.raw)
+tail(data.Tol.19Nov.frag48.raw)
+```
+
+
+Check for differences between 0.01% DMSO and FSW controls
+```{r}
+load("2019.11_Tol_data_frag48_raw.RData")
+
+#Remove treatment replicates from data set
+data.Tol.19Nov.frag48.controls <- data.Tol.19Nov.frag48.raw %>% 
+  dplyr::filter(nom.x!="Treatment")
+
+#Plot to compare means and CIs
+ggplot(data.Tol.19Nov.frag48.controls, aes(x=nom.x, y=prop, fill=factor)) + 
+    geom_boxplot()
+
+#Perform t-test to check for differences between control groups
+brms.fit <- brm(suc | trials(tot)  ~ nom.x*factor, data = data.Tol.19Nov.frag48.controls, family = binomial())
+new.dat <- data.frame(expand.grid(list(nom.x=c("FSW", "0.01% DMSO"),  "factor"=c("UVR", "PAR"),"tot"=1)))
+post_preds <- posterior_epred(brms.fit, newdata=new.dat) %>% 
+  data.frame
+
+colnames(post_preds) <- paste(new.dat$nom.x, new.dat$factor)
+pred_dat <-  post_preds %>% 
+  pivot_longer(everything())
+
+ggplot(pred_dat, aes(x=value)) + 
+  geom_density(aes(group=name, colour=name, fill = name), alpha=0.3) +
+  scale_x_continuous(labels = scales::percent, name ="Average 48 h fragmentation success") +
+  scale_y_continuous(name ="Posterior probability density") +
+  theme_classic() 
+```
+
+
+Invert and calculate the mean 48 h fragmentation using the posterior probability for each data set
+```{r}
+1-mean(post_preds[,1]) #FSW UVR
+1-mean(post_preds[,2]) #0.01% DMSO UVR
+1-mean(post_preds[,3]) #FSW PAR
+1-mean(post_preds[,4]) #0.01% DMSO PAR
+```
+
+Extract the median proportion of larvae that were of average size using the posterior probability for each control data set
+```{r}
+quantile(post_preds[,1], c(0.025, 0.5, 0.975)) #FSW UVR
+quantile(post_preds[,2], c(0.025, 0.5, 0.975)) #0.01% DMSO UVR
+quantile(post_preds[,3], c(0.025, 0.5, 0.975)) #FSW PAR
+quantile(post_preds[,4], c(0.025, 0.5, 0.975)) #0.01% DMSO PAR
+```
+
+
+Filter remaining data according to light treatment + whether replicates should be included in statistical analysis and save to RData-files:
+```{r}
+load("2019.11_Tol_data_frag48_raw.RData")
+
+#Remove FSW control replicates
+data.Tol.19Nov.frag48 <- data.Tol.19Nov.frag48.raw %>% 
+  dplyr::filter(nom.x!="FSW")
+
+#Create -UVR data set and prep for use in model fitting
+data.Tol.19Nov.frag48.PAR.raw <- data.Tol.19Nov.frag48 %>% 
+  dplyr::filter(factor=="PAR") 
+data.Tol.19Nov.frag48.PAR <- data.Tol.19Nov.frag48.PAR.raw %>% 
+  dplyr::filter(use_in_model=="Yes") 
+
+#Create +UVR data set and prep for use in model fitting
+data.Tol.19Nov.frag48.UV.raw <- data.Tol.19Nov.frag48 %>% 
+  dplyr::filter(factor=="UVR") 
+data.Tol.19Nov.frag48.UV <- data.Tol.19Nov.frag48.UV.raw %>% 
+  dplyr::filter(use_in_model=="Yes") 
+
+#check that filtering worked
+View(data.Tol.19Nov.frag48.PAR)
+View(data.Tol.19Nov.frag48.UV)
+
+#Save complete data sets and data sets prepared for model fitting
+save(data.Tol.19Nov.frag48.PAR.raw, data.Tol.19Nov.frag48.UV.raw, data.Tol.19Nov.frag48.PAR,data.Tol.19Nov.frag48.UV, file = "2019.11_Tol_data_frag48_filtered.RData")
+
+load(file = "2019.11_Tol_data_frag48_filtered.RData")
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### -UV/PAR
+
+#### Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2019.11_Tol_data_frag48_filtered.RData")
+
+unique(data.Tol.19Nov.frag48.PAR$raw.x)
+par(mfrow=c(2,1))
+hist(data.Tol.19Nov.frag48.PAR$raw.x)
+hist(data.Tol.19Nov.frag48.PAR$suc/data.Tol.19Nov.frag48.PAR$tot)
+par(mfrow=c(1,1))
+plot(data.Tol.19Nov.frag48.PAR$log.x, data.Tol.19Nov.frag48.PAR$prop) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+##### Fit models
+
+No models attempted to be fitted for PAR data as no fragments were observed at any treatment concentration used.
+
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### +UV/UV
+
+#### Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2019.11_Tol_data_frag48_filtered.RData")
+
+unique(data.Tol.19Nov.frag48.UV$raw.x)
+par(mfrow=c(2,1))
+hist(data.Tol.19Nov.frag48.UV$raw.x)
+hist(data.Tol.19Nov.frag48.UV$suc/data.Tol.19Nov.frag48.UV$tot)
+par(mfrow=c(1,1))
+plot(data.Tol.19Nov.frag48.UV$log.x, data.Tol.19Nov.frag48.UV$prop) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+##### Fit models
+
+###### Binomial
+
+Fit a model-averaged NEC-model (MANEC)
+```{r, eval=FALSE}
+load(file = "2019.11_Tol_data_frag48_filtered.RData")
+
+library(bayesnec)
+library(beepr)
+out.Tol.19Nov.frag48.UV.all <- bnec(data = data.Tol.19Nov.frag48.UV, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all")
+
+save(out.Tol.19Nov.frag48.UV.all, file = "2019.11_Tol_frag48_UV_modfit_all.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all.RData")
+
+rhat(out.Tol.19Nov.frag48.UV.all, rhat_cutoff = 1.03)
+```
+
+Drop candidate models that failed the RHat test (if required)
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all.RData")
+
+out.Tol.19Nov.frag48.UV.all2 <- amend(out.Tol.19Nov.frag48.UV.all, drop = c("ecxll5")) #add in bad candidate models in drop = c())
+save(out.Tol.19Nov.frag48.UV.all, out.Tol.19Nov.frag48.UV.all2, file = "2019.11_Tol_frag48_UV_modfit_all.RData")
+```
+
+
+Check overdispersion estimates and candidate model weights
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all.RData")
+
+out.Tol.19Nov.frag48.UV.all2$mod_stats
+summary(out.Tol.19Nov.frag48.UV.all2)
+```
+
+*Any evidence of overdispersion?*
+    - No. Some potential evidence of underdispersion.
+
+
+Check chain mixing
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all.RData")
+
+check_chains(out.Tol.19Nov.frag48.UV.all2, filename = "2019.11_Tol_frag48_UV_chains_modfit_all") #change to out.Tol.19Nov.frag48.PAR.all2 if any models were dropped based on rhat
+```
+
+If dispersion estimate credible intervals do not include 1 the data is overdispersed. Investigate the chain mixing- and correlation plots further if RHat values >1.004 for any parameter. If all models fail the RHat test (ie all > 1.05): may need to re-fit the MANEC with increased iterations or burn-in.
+
+*Any evidence of non-convergence, poor chain mixing or autocorrelation?*
+    - model =       include/unclear/exclude     (reason for potential exclusion)
+    
+    - nechorme4 =           unclear             (minor-some evidence of poor chain mixing)
+    - neclin =              unclear             (minor-some evidence of poor chain mixing)
+    - neclinhorme =         unclear             (minor-some evidence of poor chain mixing)
+    - ecxwb2 =              include             (minor evidence of poor chain mixing)
+
+
+```{r}
+plot(out.Tol.19Nov.frag48.UV.all2, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+
+Check if model median, credible intervals and NEC estimates are reasonable for candidate models compared to the raw data
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all.RData")
+
+pdf("2019.11_Tol_frag48_UV_modfitplots_all.pdf")
+plot(out.Tol.19Nov.frag48.UV.all2, all_models = TRUE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+
+###### Betabinomial
+
+Re-fit MANEC using a distribution appropriate for overdispersed binomial data
+```{r}
+load(file = "2019.11_Tol_data_frag48_filtered.RData")
+library(bayesnec)
+library(beepr)
+out.Tol.19Nov.frag48.UV.all.od <- bnec(data = data.Tol.19Nov.frag48.UV, 
+                        x_var = "log.x", 
+                        y_var = "suc", 
+                        trials_var = "tot",
+                        model = "all",
+                        family = beta_binomial2)
+
+save(out.Tol.19Nov.frag48.UV.all.od, file = "2019.11_Tol_frag48_UV_modfit_all_OD.RData")
+beep("mario")
+```
+
+
+Check RHat values to discard bad candidate model fits
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all_OD.RData")
+
+rhat(out.Tol.19Nov.frag48.UV.all.od, rhat_cutoff = 1.03)
+```
+
+
+Check chain mixing for remaining candidate models
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all_OD.RData")
+
+check_chains(out.Tol.19Nov.frag48.UV.all.od, filename = "2019.11_Tol_frag48_UV_chains_modfit_all_OD") #change this if any candidate models were discarded based on Rhat: out.Tol.19Nov.frag48.UV.all.od2
+out.Tol.19Nov.frag48.UV.all.od$mod_stats
+summary(out.Tol.19Nov.frag48.UV.all.od)
+```
+
+
+```{r}
+plot(out.Tol.19Nov.frag48.UV.all.od, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+    
+Check if model median, credible intervals and NEC estimates are reasonable for candidate models compared to the raw data
+```{r}
+load("2019.11_Tol_frag48_UV_modfit_all_OD.RData")
+pdf("2019.11_Tol_frag48_UV_modfitplots_all_OD.pdf")
+plot(out.Tol.19Nov.frag48.UV.all.od, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+
+###### Compare binomial and betabinomial MANECs and select model to use
+
+Compare to MANEC fitted using the binomial distribution
+```{r}
+plot(out.Tol.19Nov.frag48.UV.all2, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10)
+plot(out.Tol.19Nov.frag48.UV.all.od, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10)
+```
+
+
+*Did using the betabinomial distribution improve MANEC model fit compared to the MANEC fit using the binomial distribution?*
+    - It improved the credible intervals at the highest treatment concnetration.
+
+
+Rename model output for selected model (binomial or betabinomial)
+```{r}
+out.Tol.19Nov.frag48.UV <- out.Tol.19Nov.frag48.UV.all.od
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out.Tol.19Nov.frag48.UV.NEC <- pull_out(out.Tol.19Nov.frag48.UV, model = c("nec"))
+```
+
+
+```{r}
+plot(out.Tol.19Nov.frag48.UV.NEC, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out.Tol.19Nov.frag48.UV, out.Tol.19Nov.frag48.UV.NEC, file = "2019.11_Tol_frag48_UV_modfits_final.RData")
+load("2019.11_Tol_frag48_UV_modfits_final.RData")
+```
+
+
+
+#### Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+load("2019.11_Tol_frag48_UV_modfits_final.RData")
+NEC.Tol.19Nov.frag48.UV <- out.Tol.19Nov.frag48.UV.NEC$w_nec
+NEC.Tol.19Nov.frag48.UV <- 10^NEC.Tol.19Nov.frag48.UV #if using log10(raw.x)
+#NEC.Tol.19Nov.frag48.UV <- exp(NEC.Tol.19Nov.frag48.UV) #if using log(raw.x)
+NEC.Tol.19Nov.frag48.UV
+```
+
+```{r}
+load("2019.11_Tol_frag48_UV_modfits_final.RData")
+EC10.Tol.19Nov.frag48.UV <- ecx(out.Tol.19Nov.frag48.UV, ecx_val = 10, type = "absolute")
+EC10.Tol.19Nov.frag48.UV <- 10^EC10.Tol.19Nov.frag48.UV #if using log10(raw.x)
+#EC10.Tol.19Nov.frag48.UV <- exp(EC10.Tol.19Nov.frag48.UV) #if using log(raw.x)
+EC10.Tol.19Nov.frag48.UV
+```
+
+```{r}
+load("2019.11_Tol_frag48_UV_modfits_final.RData")
+EC50.Tol.19Nov.frag48.UV <- ecx(out.Tol.19Nov.frag48.UV, ecx_val = 50, type = "absolute")
+EC50.Tol.19Nov.frag48.UV <- 10^EC50.Tol.19Nov.frag48.UV #if using log10(raw.x)
+#EC50.Tol.19Nov.frag48.UV <- exp(EC50.Tol.19Nov.frag48.UV) #if using log(raw.x)
+EC50.Tol.19Nov.frag48.UV
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+### Compare light treatments and pLot results
+
+```{r}
+#For plotting results & model/threshold value comparisons
+library(ggplot2)
+library(scales)
+library(tidybayes)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+
+Extract complete posteriors for the fitted values using compare_posterior-function
+```{r}
+
+load("2019.11_Tol_frag48_UV_modfits_final.RData")
+
+pred.Tol.19Nov.frag48 <- compare_posterior(x=list("dummy" = out.Tol.19Nov.frag48.UV.all.od, "UVR" = out.Tol.19Nov.frag48.UV), comparison = "fitted", precision = 50)
+
+
+pred.Tol.19Nov.frag48.UV <- pred.Tol.19Nov.frag48$posterior_data %>% 
+  dplyr::filter(model=="UVR")
+
+
+
+pred.Tol.19Nov.frag48.NEC <- compare_posterior(list("dummy" = out.Tol.19Nov.frag48.UV.all.od, "UVR" = out.Tol.19Nov.frag48.UV.NEC), comparison = "fitted", precision = 50)
+
+
+pred.Tol.19Nov.frag48.UV.NEC <- pred.Tol.19Nov.frag48.NEC$posterior_data %>% 
+ dplyr::filter(model=="UVR")
+
+
+save(pred.Tol.19Nov.frag48, pred.Tol.19Nov.frag48.UV, pred.Tol.19Nov.frag48.UV.NEC, file = "2019.11_Tol_frag48_predvals.RData") 
+load("2019.11_Tol_frag48_predvals.RData")
+
+str(pred.Tol.19Nov.frag48.UV)
+```
+
+
+#### Plot MANEC model fits alongside raw data
+
+##### Invert model median and credible intervals
+
+```{r}
+pred.Tol.19Nov.frag48.UV.inv <- as.data.frame(pred.Tol.19Nov.frag48.UV)
+head(pred.Tol.19Nov.frag48.UV.inv)
+pred.Tol.19Nov.frag48.UV.inv <- mutate(pred.Tol.19Nov.frag48.UV.inv, Estimate = 1-(pred.Tol.19Nov.frag48.UV.inv$Estimate))
+pred.Tol.19Nov.frag48.UV.inv <- mutate(pred.Tol.19Nov.frag48.UV.inv, Q97.5 = 1-(pred.Tol.19Nov.frag48.UV.inv$Q97.5))
+pred.Tol.19Nov.frag48.UV.inv <- mutate(pred.Tol.19Nov.frag48.UV.inv, Q2.5 = 1-(pred.Tol.19Nov.frag48.UV.inv$Q2.5))
+head(pred.Tol.19Nov.frag48.UV.inv)
+```
+
+```{r}
+pred.Tol.19Nov.frag48.UV.NEC.inv <- as.data.frame(pred.Tol.19Nov.frag48.UV.NEC)
+head(pred.Tol.19Nov.frag48.UV.NEC.inv)
+pred.Tol.19Nov.frag48.UV.NEC.inv <- mutate(pred.Tol.19Nov.frag48.UV.NEC.inv, Estimate = 1-(pred.Tol.19Nov.frag48.UV.NEC.inv$Estimate))
+pred.Tol.19Nov.frag48.UV.NEC.inv <- mutate(pred.Tol.19Nov.frag48.UV.NEC.inv, Q97.5 = 1-(pred.Tol.19Nov.frag48.UV.NEC.inv$Q97.5))
+pred.Tol.19Nov.frag48.UV.NEC.inv <- mutate(pred.Tol.19Nov.frag48.UV.NEC.inv, Q2.5 = 1-(pred.Tol.19Nov.frag48.UV.NEC.inv$Q2.5))
+head(pred.Tol.19Nov.frag48.UV.NEC.inv)
+```
+
+Update the RData file for the predicted values
+```{r}
+save(pred.Tol.19Nov.frag48, pred.Tol.19Nov.frag48.UV, pred.Tol.19Nov.frag48.UV.NEC, pred.Tol.19Nov.frag48.UV.inv, pred.Tol.19Nov.frag48.UV.NEC.inv, file = "2019.11_Tol_frag48_predvals.RData") 
+```
+
+
+##### Complete subset-MANEC plot
+
+```{r}
+load("2019.11_Tol_data_frag48_filtered.RData")
+load("2019.11_Tol_frag48_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+#p.all= p.all+  geom_ribbon(aes(x=10^pred.Tol.19Nov.frag48.PAR.inv$x, ymin=pred.Tol.19Nov.frag48.PAR.inv$Q2.5, ymax=pred.Tol.19Nov.frag48.PAR.inv$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Tol.19Nov.frag48.UV.inv$x, ymin=pred.Tol.19Nov.frag48.UV.inv$Q2.5, ymax=pred.Tol.19Nov.frag48.UV.inv$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+#p.all= p.all+ geom_line(aes(x=10^pred.Tol.19Nov.frag48.PAR.inv$x, y=pred.Tol.19Nov.frag48.PAR.inv$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Tol.19Nov.frag48.UV.inv$x, y=pred.Tol.19Nov.frag48.UV.inv$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Tol.19Nov.frag48.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.Tol.19Nov.frag48.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(48~h~fragmentation~("%")),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("steelblue", "seagreen"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Tol.19Nov.frag48.all <- p.all
+plot.Tol.19Nov.frag48.all
+```
+
+
+#### NEC subset-MANEC plot
+
+```{r}
+load("2019.11_Tol_data_frag48_filtered.RData")
+load("2019.11_Tol_frag48_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+#p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Tol.19Nov.frag48.PAR.NEC.inv$x, ymin=pred.Tol.19Nov.frag48.PAR.NEC.inv$Q2.5, ymax=pred.Tol.19Nov.frag48.PAR.NEC.inv$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Tol.19Nov.frag48.UV.NEC.inv$x, ymin=pred.Tol.19Nov.frag48.UV.NEC.inv$Q2.5, ymax=pred.Tol.19Nov.frag48.UV.NEC.inv$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+#p.NEC= p.NEC+ geom_line(aes(x=10^pred.Tol.19Nov.frag48.PAR.NEC.inv$x, y=pred.Tol.19Nov.frag48.PAR.NEC.inv$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Tol.19Nov.frag48.UV.NEC.inv$x, y=pred.Tol.19Nov.frag48.UV.NEC.inv$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Tol.19Nov.frag48.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.Tol.19Nov.frag48.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(Concentration~(μg~"L"^{-1})),
+              y=expression(48~h~ fragmentation~("%")),
+              subtitle="c)")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("steelblue", "seagreen"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Tol.19Nov.frag48.NEC <- p.NEC
+plot.Tol.19Nov.frag48.NEC
+```
+
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+
+## Create layouts and export (if required)
+
+
+Create layout to view result plots side-by-side
+```{r}
+layout.Tol.19Nov.frag48 <- ggarrange(plot.Tol.19Nov.frag48.all,  plot.Tol.19Nov.frag48.NEC,
+          ncol = 1, nrow = 2,
+          widths = c(0.5, 0.5))
+layout.Tol.19Nov.frag48
+```
+

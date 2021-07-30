@@ -1,0 +1,1354 @@
+---
+title: "Ch4_Meta_Layouts"
+author: "Mikaela Nordborg"
+date: "21/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#For plotting results & model/threshold value comparisons
+library(ggplot2)
+library(scales)
+library(tidybayes)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+
+
+## Main text result figure
+
+### Load and adjust graphs
+
+#### *Toluene*
+##### Nov 2019
+###### Complete MANEC model fit plot
+```{r}
+load("2019.11_Tol_data_meta_filtered.RData")
+load("2019.11_Tol_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Tol.19Nov.meta.PAR$x, ymin=pred.Tol.19Nov.meta.PAR$Q2.5, ymax=pred.Tol.19Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Tol.19Nov.meta.UV$x, ymin=pred.Tol.19Nov.meta.UV$Q2.5, ymax=pred.Tol.19Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Tol.19Nov.meta.PAR$x, y=pred.Tol.19Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Tol.19Nov.meta.UV$x, y=pred.Tol.19Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Tol.19Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.Tol.19Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(Metamorphosis~success~("%")),
+              subtitle="a) Toluene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Tol.19Nov.meta.all <- p.all
+plot.Tol.19Nov.meta.all
+```
+
+
+
+#### *Naphthalene*
+##### Dec 2018
+###### Complete MANECmodel fit plot
+```{r}
+load("2018.12_Nap_data_meta_filtered.RData")
+load("2018.12_Nap_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Nap.18Dec.meta.PAR$x, ymin=pred.Nap.18Dec.meta.PAR$Q2.5, ymax=pred.Nap.18Dec.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Nap.18Dec.meta.UV$x, ymin=pred.Nap.18Dec.meta.UV$Q2.5, ymax=pred.Nap.18Dec.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Nap.18Dec.meta.PAR$x, y=pred.Nap.18Dec.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Nap.18Dec.meta.UV$x, y=pred.Nap.18Dec.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Nap.18Dec.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.Nap.18Dec.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(), #Metamorphosis~("%")
+              subtitle="b) Naphthalene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Nap.18Dec.meta.all <- p.all
+plot.Nap.18Dec.meta.all
+```
+
+
+
+#### *1-methylnaphthalene*
+##### Nov 2019
+###### Complete MANEC model fit plot
+```{r}
+load("2019.11_1MN_data_meta_filtered.RData")
+load("2019.11_1MN_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.1MN.19Nov.meta.PAR$x, ymin=pred.1MN.19Nov.meta.PAR$Q2.5, ymax=pred.1MN.19Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.1MN.19Nov.meta.UV$x, ymin=pred.1MN.19Nov.meta.UV$Q2.5, ymax=pred.1MN.19Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.1MN.19Nov.meta.PAR$x, y=pred.1MN.19Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.1MN.19Nov.meta.UV$x, y=pred.1MN.19Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.1MN.19Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.1MN.19Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(Metamorphosis~success~("%")),
+              subtitle="c) 1-methylnaphthalene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.1MN.19Nov.meta.all <- p.all
+plot.1MN.19Nov.meta.all
+```
+
+
+
+#### *Phenanthrene*
+##### Dec 2018
+###### Complete MANECmodel fit plot
+```{r}
+load("2018.11_Phe_data_meta_filtered.RData")
+load("2018.11_Phe_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Phe.18Nov.meta.PAR$x, ymin=pred.Phe.18Nov.meta.PAR$Q2.5, ymax=pred.Phe.18Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Phe.18Nov.meta.UV$x, ymin=pred.Phe.18Nov.meta.UV$Q2.5, ymax=pred.Phe.18Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Phe.18Nov.meta.PAR$x, y=pred.Phe.18Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Phe.18Nov.meta.UV$x, y=pred.Phe.18Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Phe.18Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.Phe.18Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(), #Metamorphosis~("%")
+              subtitle="d) Phenanthrene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Phe.18Nov.meta.all <- p.all
+plot.Phe.18Nov.meta.all
+```
+
+
+
+#### *Anthracene*
+##### Dec 2017
+###### Complete MANECmodel fit plot
+```{r}
+load("2017.12_Ant_data_meta_filtered.RData")
+load("2017.12_Ant_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Ant.17Dec.meta.PAR$x, ymin=pred.Ant.17Dec.meta.PAR$Q2.5, ymax=pred.Ant.17Dec.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Ant.17Dec.meta.UV$x, ymin=pred.Ant.17Dec.meta.UV$Q2.5, ymax=pred.Ant.17Dec.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Ant.17Dec.meta.PAR$x, y=pred.Ant.17Dec.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Ant.17Dec.meta.UV$x, y=pred.Ant.17Dec.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Ant.17Dec.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = data.Ant.17Dec.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~"L"^{-1})), #
+              y=expression(Metamorphosis~success~("%")),
+              subtitle="e) Anthracene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Ant.17Dec.meta.all <- p.all
+plot.Ant.17Dec.meta.all
+```
+
+
+
+#### *Pyrene*
+##### Nov 2017
+###### Complete MANECmodel fit plot
+```{r}
+load("2017.11_Pyr_data_meta_filtered.RData")
+load("2017.11_Pyr_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.PAR$x, ymin=pred.Pyr.17Nov.meta.PAR$Q2.5, ymax=pred.Pyr.17Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.UV$x, ymin=pred.Pyr.17Nov.meta.UV$Q2.5, ymax=pred.Pyr.17Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.PAR$x, y=pred.Pyr.17Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.UV$x, y=pred.Pyr.17Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Pyr.17Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.all= p.all+ geom_point(data = data.Pyr.17Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~"L"^{-1})), 
+              y=expression(), #Metamorphosis~("%")
+              subtitle="f) Pyrene")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Pyr.17Nov.meta.all <- p.all
+plot.Pyr.17Nov.meta.all
+```
+
+
+
+
+### Model comparisons +UV vs -UV
+#### Load comparisons
+##### *Toluene*
+```{r}
+load("2019.11_Tol_meta_predvals.RData")
+
+pred.Tol.19Nov.meta$diff_data$inv.x <- 10^pred.Tol.19Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Tol.19Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(), #Treatment~concentration~(μg~"L"^{-1})
+                   y=expression(Posterior~difference~estimate),
+                   subtitle="a) Toluene")
+
+plot.Tol.19Nov.meta.diff.est <- p.comp.diff
+plot.Tol.19Nov.meta.diff.est
+```
+
+
+##### *Naphthalene*
+```{r}
+load("2018.12_Nap_meta_predvals.RData")
+
+pred.Nap.18Dec.meta$diff_data$inv.x <- 10^pred.Nap.18Dec.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Nap.18Dec.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous()
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(), #Treatment~concentration~(μg~"L"^{-1})
+                  y=expression(), #Posterior~difference~estimate
+                  subtitle="b) Naphthalene")
+
+plot.Nap.18Dec.meta.diff.est <- p.comp.diff
+plot.Nap.18Dec.meta.diff.est
+```
+
+
+##### *1-methylnaphthalene*
+```{r}
+load("2019.11_1MN_meta_predvals.RData")
+
+pred.1MN.19Nov.meta$diff_data$inv.x <- 10^pred.1MN.19Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.1MN.19Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(), #Treatment~concentration~(μg~"L"^{-1})
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="c) 1-methylnaphthalene")
+
+plot.1MN.19Nov.meta.diff.est <- p.comp.diff
+plot.1MN.19Nov.meta.diff.est
+```
+
+
+##### *Phenanthrene*
+```{r}
+load("2018.11_Phe_meta_predvals.RData")
+
+pred.Phe.18Nov.meta$diff_data$inv.x <- 10^pred.Phe.18Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Phe.18Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(), #Treatment~concentration~(μg~"L"^{-1})
+                  y=expression(), #Posterior~difference~estimate
+                  subtitle="d) Phenanthrene")
+
+plot.Phe.18Nov.meta.diff.est <- p.comp.diff
+plot.Phe.18Nov.meta.diff.est
+```
+
+
+##### *Anthracene*
+```{r}
+load("2017.12_Ant_meta_predvals.RData")
+
+pred.Ant.17Dec.meta$diff_data$inv.x <- 10^pred.Ant.17Dec.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Ant.17Dec.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(Concentration~(μg~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="e) Anthracene")
+
+plot.Ant.17Dec.meta.diff.est <- p.comp.diff
+plot.Ant.17Dec.meta.diff.est
+```
+
+
+##### *Pyrene*
+```{r}
+load("2017.11_Pyr_meta_predvals.RData")
+
+pred.Pyr.17Nov.meta$diff_data$inv.x <- 10^pred.Pyr.17Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Pyr.17Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous() 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(Concentration~(μg~"L"^{-1})),
+                  y=expression(), #Posterior~difference~estimate
+                  subtitle="f) Pyrene")
+
+plot.Pyr.17Nov.meta.diff.est <- p.comp.diff
+plot.Pyr.17Nov.meta.diff.est
+```
+
+
+
+
+### Layouts
+
+#### Full MANEC fit layouts
+```{r}
+layout.Ch4.SUP.meta.CR.only <- ggarrange(plot.Tol.19Nov.meta.all, plot.Nap.18Dec.meta.all, plot.1MN.19Nov.meta.all, plot.Phe.18Nov.meta.all, plot.Ant.17Dec.meta.all, plot.Pyr.17Nov.meta.all,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.SUP.meta.CR.only
+```
+##### Export
+```{r}
+pdf("Ch4_SUP_fig_meta_CR_only.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.SUP.meta.CR.only
+dev.off()
+```
+
+
+#### Differences posterior layouts
+```{r}
+layout.Ch4.SUP.meta.Diff.only <- ggarrange(plot.Tol.19Nov.meta.diff.est, plot.Nap.18Dec.meta.diff.est, plot.1MN.19Nov.meta.diff.est, plot.Phe.18Nov.meta.diff.est, plot.Ant.17Dec.meta.diff.est, plot.Pyr.17Nov.meta.diff.est,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.SUP.meta.Diff.only
+```
+##### Export
+```{r}
+pdf("Ch4_SUP_fig_meta_Diff_only.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.SUP.meta.Diff.only
+dev.off()
+```
+
+
+#### Combined layouts
+```{r}
+layout.Ch4.main.meta.CR.and.diff.a <- ggarrange(plot.Tol.19Nov.meta.all, plot.Tol.19Nov.meta.diff.est, plot.Nap.18Dec.meta.all, plot.Nap.18Dec.meta.diff.est, plot.1MN.19Nov.meta.all, plot.1MN.19Nov.meta.diff.est,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.main.meta.CR.and.diff.a
+```
+
+```{r}
+layout.Ch4.main.meta.CR.and.diff.b <- ggarrange(plot.Phe.18Nov.meta.all, plot.Phe.18Nov.meta.diff.est, plot.Ant.17Dec.meta.all, plot.Ant.17Dec.meta.diff.est, plot.Pyr.17Nov.meta.all, plot.Pyr.17Nov.meta.diff.est,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.main.meta.CR.and.diff.b
+```
+
+### Export
+```{r}
+pdf("Ch4_main_meta_cr&diff_a.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.main.meta.CR.and.diff.a
+dev.off()
+```
+
+```{r}
+pdf("Ch4_main_meta_cr&diff_b.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.main.meta.CR.and.diff.b
+dev.off()
+```
+
+
+
+
+
+## Supplementary materials result figures
+
+### Full MANEC EC50 posterior probability distributions
+
+#### Load comparisons
+
+##### Toluene
+```{r}
+load("2019.11_Tol_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Tol.19Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 9)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+                                 y=expression(Posterior~probability~density),
+                                 subtitle="a) Toluene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 7.2, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 52.41%", x = 0.55, y = 6.52, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Tol.19Nov.meta.EC50 <- p.comp.EC50
+comp.plot.Tol.19Nov.meta.EC50
+```
+
+##### Naphthalene
+```{r}
+load("2018.12_Nap_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Nap.18Dec.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 4)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+                                 y=expression(), #Posterior probability density
+               subtitle="b) Naphthalene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 3.2, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 25.60%", x = 0.55, y = 2.90, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Nap.18Dec.meta.EC50 <- p.comp.EC50
+comp.plot.Nap.18Dec.meta.EC50
+```
+
+##### 1-methylnaphthalene
+```{r}
+load("2019.11_1MN_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.1MN.19Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 2.2)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+                                 y=expression(Posterior~probability~density),
+               subtitle="c) 1-methylnaphthalene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 1.76, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 69.12%", x = 0.55, y = 1.59, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.1MN.19Nov.meta.EC50 <- p.comp.EC50
+comp.plot.1MN.19Nov.meta.EC50
+```
+
+##### Phenanthrene
+```{r}
+load("2018.11_Phe_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Phe.18Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 8.5)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+                                 y=expression(), #Posterior~probabilit~density
+               subtitle="d) Phenanthrene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 6.8, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 50.00%", x = 0.55, y = 6.16, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Phe.18Nov.meta.EC50 <- p.comp.EC50
+comp.plot.Phe.18Nov.meta.EC50
+```
+
+##### Anthracene
+*-------------------------------------------------------------------------------------------------------------------------------*
+To remove the -UV density I would need to filter comp.Anth.17Dec.meta.EC50$posterior_data first and then only use the +UVR object.
+*-------------------------------------------------------------------------------------------------------------------------------*
+```{r}
+load("2017.12_Ant_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Ant.17Dec.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 12.5)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(EC50~(μg~"L"^{-1})), #EC50~(μg~"L"^{-1})
+                                 y=expression(Posterior~probability~density),
+                                 subtitle="e) Anthracene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 10, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 100%", x = 0.55, y = 9.06, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Ant.17Dec.meta.EC50 <- p.comp.EC50
+comp.plot.Ant.17Dec.meta.EC50
+```
+
+##### Pyrene
+*-------------------------------------------------------------------------------------------------------------------------------*
+To remove the -UV density I would need to filter comp.Pyr.17Nov.meta.EC50$posterior_data first and then only use the +UVR object.
+*-------------------------------------------------------------------------------------------------------------------------------*
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Pyr.17Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 12)) 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(EC50~(μg~"L"^{-1})), #
+                                 y=expression(), #Posterior~probability~density
+                                 subtitle="f) Pyrene")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.6, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 83.63%", x = 0.55, y = 8.7, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Pyr.17Nov.meta.EC50 <- p.comp.EC50
+comp.plot.Pyr.17Nov.meta.EC50
+```
+
+#### EC50 comparison layout
+```{r}
+layout.Ch4.SUP.meta.EC50comp <- ggarrange(comp.plot.Tol.19Nov.meta.EC50, comp.plot.Nap.18Dec.meta.EC50, comp.plot.1MN.19Nov.meta.EC50, comp.plot.Phe.18Nov.meta.EC50, comp.plot.Ant.17Dec.meta.EC50, comp.plot.Pyr.17Nov.meta.EC50,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.SUP.meta.EC50comp
+```
+##### Export
+```{r}
+pdf("Ch4_SUP_fig_meta_EC50_comp.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.SUP.meta.EC50comp
+dev.off()
+```
+
+
+
+## NEC model fits + NEC PPD comparison
+
+### Load and adjust graphs
+
+#### *Toluene*
+##### Nov 2019
+###### NEC subset MANEC model fit plot
+```{r}
+load("2019.11_Tol_data_meta_filtered.RData")
+load("2019.11_Tol_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Tol.19Nov.meta.PAR.NEC$x, ymin=pred.Tol.19Nov.meta.PAR.NEC$Q2.5, ymax=pred.Tol.19Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Tol.19Nov.meta.UV.NEC$x, ymin=pred.Tol.19Nov.meta.UV.NEC$Q2.5, ymax=pred.Tol.19Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Tol.19Nov.meta.PAR.NEC$x, y=pred.Tol.19Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Tol.19Nov.meta.UV.NEC$x, y=pred.Tol.19Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Tol.19Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.Tol.19Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+                    y=expression(Metamorphosis~("%")),
+                    subtitle="a) Toluene")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Tol.19Nov.meta.NEC <- p.NEC
+plot.Tol.19Nov.meta.NEC
+```
+
+###### NEC compare posterior probability density plot
+```{r}
+load("2019.11_Tol_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Tol.19Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 5.8)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(), #Threshold~concentration~(μg~"L"^{-1})
+                               y=expression(Posterior~probability~density), #
+                               subtitle="a) Toluene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 4.64, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 18.38%", x = 0.55, y = 4.20, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Tol.19Nov.meta.NEC <- p.comp.NEC
+comp.plot.Tol.19Nov.meta.NEC
+```
+
+
+#### *Naphthalene*
+##### Dec 2018
+###### NEC subset MANEC model fit plot
+```{r}
+load("2018.12_Nap_data_meta_filtered.RData")
+load("2018.12_Nap_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Nap.18Dec.meta.PAR.NEC$x, ymin=pred.Nap.18Dec.meta.PAR.NEC$Q2.5, ymax=pred.Nap.18Dec.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Nap.18Dec.meta.UV.NEC$x, ymin=pred.Nap.18Dec.meta.UV.NEC$Q2.5, ymax=pred.Nap.18Dec.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Nap.18Dec.meta.PAR.NEC$x, y=pred.Nap.18Dec.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Nap.18Dec.meta.UV.NEC$x, y=pred.Nap.18Dec.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Nap.18Dec.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.Nap.18Dec.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+                    y=expression(), #Metamorphosis~("%")
+                    subtitle="b) Naphthalene")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Nap.18Dec.meta.NEC <- p.NEC
+plot.Nap.18Dec.meta.NEC
+```
+
+###### NEC compare posterior probability density plot
+```{r}
+load("2018.12_Nap_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Nap.18Dec.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 2.05)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(), #Threshold~concentration~(μg~"L"^{-1})
+                               y=expression(), #Posterior~probability~density
+                               subtitle="b) Naphthalene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 1.64, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 51.23%", x = 0.55, y = 1.49, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Nap.18Dec.meta.NEC <- p.comp.NEC
+comp.plot.Nap.18Dec.meta.NEC
+```
+
+
+#### *1-methylnaphthalene*
+##### Nov 2019
+###### NEC subset MANEC model fit plot
+```{r}
+load("2019.11_1MN_data_meta_filtered.RData")
+load("2019.11_1MN_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.1MN.19Nov.meta.PAR.NEC$x, ymin=pred.1MN.19Nov.meta.PAR.NEC$Q2.5, ymax=pred.1MN.19Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.1MN.19Nov.meta.UV.NEC$x, ymin=pred.1MN.19Nov.meta.UV.NEC$Q2.5, ymax=pred.1MN.19Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.1MN.19Nov.meta.PAR.NEC$x, y=pred.1MN.19Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.1MN.19Nov.meta.UV.NEC$x, y=pred.1MN.19Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.1MN.19Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.1MN.19Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+                    y=expression(Metamorphosis~success~("%")),
+                    subtitle="c) 1-methylnaphthalene")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.1MN.19Nov.meta.NEC <- p.NEC
+plot.1MN.19Nov.meta.NEC
+```
+###### NEC compare posterior probability density plot
+```{r}
+load("2019.11_1MN_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.1MN.19Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 1.2)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(), #NEC~(μg~"L"^{-1})
+                               y=expression(Posterior~probability~density),
+                               subtitle="c) 1-methylnaphthalene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 0.96, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 41.24%", x = 0.55, y = 0.87, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.1MN.19Nov.meta.NEC <- p.comp.NEC
+comp.plot.1MN.19Nov.meta.NEC
+```
+
+
+
+#### *Phenanthrene*
+##### Dec 2018
+###### NEC subset MANEC model fit plot
+```{r}
+load("2018.11_Phe_data_meta_filtered.RData")
+load("2018.11_Phe_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Phe.18Nov.meta.PAR.NEC$x, ymin=pred.Phe.18Nov.meta.PAR.NEC$Q2.5, ymax=pred.Phe.18Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Phe.18Nov.meta.UV.NEC$x, ymin=pred.Phe.18Nov.meta.UV.NEC$Q2.5, ymax=pred.Phe.18Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Phe.18Nov.meta.PAR.NEC$x, y=pred.Phe.18Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Phe.18Nov.meta.UV.NEC$x, y=pred.Phe.18Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Phe.18Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.Phe.18Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(), #Metamorphosis~success~("%")
+              subtitle="d) Phenanthrene")
+p.NEC= p.NEC+ scale_y_continuous(limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Phe.18Nov.meta.NEC <- p.NEC
+plot.Phe.18Nov.meta.NEC
+```
+###### NEC compare posterior probability density plot
+```{r}
+load("2018.11_Phe_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Phe.18Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 6)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(), #Threshold~concentration~(μg~"L"^{-1})
+                               y=expression(), #Posterior~probability~density
+               subtitle="d) Phenanthrene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 4.8, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 72.10%", x = 0.55, y = 4.35, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Phe.18Nov.meta.NEC <- p.comp.NEC
+comp.plot.Phe.18Nov.meta.NEC
+```
+
+
+
+#### *Anthracene*
+##### 2017.12
+###### NEC subset MANEC model fit plot
+```{r}
+load("2017.12_Ant_data_meta_filtered.RData")
+load("2017.12_Ant_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Ant.17Dec.meta.PAR.NEC$x, ymin=pred.Ant.17Dec.meta.PAR.NEC$Q2.5, ymax=pred.Ant.17Dec.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Ant.17Dec.meta.UV.NEC$x, ymin=pred.Ant.17Dec.meta.UV.NEC$Q2.5, ymax=pred.Ant.17Dec.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Ant.17Dec.meta.PAR.NEC$x, y=pred.Ant.17Dec.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Ant.17Dec.meta.UV.NEC$x, y=pred.Ant.17Dec.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Ant.17Dec.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+p.NEC= p.NEC+ geom_point(data = data.Ant.17Dec.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.NEC = p.NEC+ labs(x=expression(Concentration~(μg~"L"^{-1})),
+                    y=expression(Metamorphosis~success~("%")), #
+                    subtitle="e) Anthracene")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Ant.17Dec.meta.NEC <- p.NEC
+plot.Ant.17Dec.meta.NEC
+```
+###### NEC compare posterior probability density plot
+```{r}
+load("2017.12_Ant_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Ant.17Dec.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 10)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(NEC~(μg~"L"^{-1})),
+                               y=expression(Posterior~probability~density),
+                               subtitle="e) Anthracene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 7.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 26.13%", x = 0.55, y = 5.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Ant.17Dec.meta.NEC <- p.comp.NEC
+comp.plot.Ant.17Dec.meta.NEC
+```
+
+
+
+#### *Pyrene*
+##### 2017.11
+###### NEC subset MANEC model fit plot
+```{r}
+load("2017.11_Pyr_data_meta_filtered.RData")
+load("2017.11_Pyr_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.PAR.NEC$x, ymin=pred.Pyr.17Nov.meta.PAR.NEC$Q2.5, ymax=pred.Pyr.17Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Pyr.17Nov.meta.UV.NEC$x, ymin=pred.Pyr.17Nov.meta.UV.NEC$Q2.5, ymax=pred.Pyr.17Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.PAR.NEC$x, y=pred.Pyr.17Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Pyr.17Nov.meta.UV.NEC$x, y=pred.Pyr.17Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Pyr.17Nov.meta.PAR, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.02))
+p.NEC= p.NEC+ geom_point(data = data.Pyr.17Nov.meta.UV, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.02))
+
+
+p.NEC = p.NEC+ labs(x=expression(Concentration~(μg~"L"^{-1})),
+                    y=expression(), #Metamorphosis~success~("%")
+                    subtitle="f) Pyrene")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Pyr.17Nov.meta.NEC <- p.NEC
+plot.Pyr.17Nov.meta.NEC
+```
+###### NEC compare posterior probability density plot
+```{r}
+load("2017.11_Pyr_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Pyr.17Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 8)) 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(NEC~(μg~"L"^{-1})),
+                               y=expression(), #Posterior~probability~density
+                               subtitle="f) Pyrene")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 6.4, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 70.25%", x = 0.55, y = 5.8, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Pyr.17Nov.meta.NEC <- p.comp.NEC
+comp.plot.Pyr.17Nov.meta.NEC
+```
+
+
+### Create layout
+```{r}
+layout.Ch4.SUP.meta.NEC <- ggarrange(plot.Tol.19Nov.meta.NEC, plot.Nap.18Dec.meta.NEC, plot.1MN.19Nov.meta.NEC, plot.Phe.18Nov.meta.NEC, plot.Ant.17Dec.meta.NEC, plot.Pyr.17Nov.meta.NEC,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.SUP.meta.NEC
+```
+
+```{r}
+layout.Ch4.SUP.meta.NEC.comp <- ggarrange(comp.plot.Tol.19Nov.meta.NEC, comp.plot.Nap.18Dec.meta.NEC, comp.plot.1MN.19Nov.meta.NEC, comp.plot.Phe.18Nov.meta.NEC,  comp.plot.Ant.17Dec.meta.NEC, comp.plot.Pyr.17Nov.meta.NEC,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch4.SUP.meta.NEC.comp
+```
+
+
+### Export
+
+```{r}
+pdf("Ch4_SUP_fig_NEC.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.SUP.meta.NEC
+dev.off()
+```
+
+
+```{r}
+pdf("Ch4_SUP_fig_NEC_comp.pdf", width = 6.69, height = 7.38) #height and width in inches
+layout.Ch4.SUP.meta.NEC.comp
+dev.off()
+```
+
+
+
+
+# Preliminary???
+
+## Phenanthrene
+### 2016
+#### Full subset MANEC
+```{r}
+load("2016.11_Phe_data_meta_filtered.RData")
+load("2016.11_Phe_meta_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Phe.16Nov.meta.PAR$x, ymin=pred.Phe.16Nov.meta.PAR$Q2.5, ymax=pred.Phe.16Nov.meta.PAR$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+  geom_ribbon(aes(x=10^pred.Phe.16Nov.meta.UV$x, ymin=pred.Phe.16Nov.meta.UV$Q2.5, ymax=pred.Phe.16Nov.meta.UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred.Phe.16Nov.meta.PAR$x, y=pred.Phe.16Nov.meta.PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred.Phe.16Nov.meta.UV$x, y=pred.Phe.16Nov.meta.UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = data.Phe.16Nov.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = data.Phe.16Nov.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~"L"^{-1})
+              y=expression(Larval~metamorphosis~("%")),
+              subtitle="a) Phenanthrene (2016)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Phe.16Nov.meta.all <- p.all
+plot.Phe.16Nov.meta.all
+```
+
+```{r}
+load("2016.11_Phe_meta_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp.Phe.16Nov.meta.EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(limits = c(-0.5, 14), name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 11.2, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 27.19%", x = 0.55, y = 10.15, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot.Phe.16Nov.meta.EC50 <- p.comp.EC50
+comp.plot.Phe.16Nov.meta.EC50
+```
+
+
+
+#### Differences posterior across all concnetrations tested
+```{r}
+load("2016.11_Phe_meta_predvals.RData")
+
+pred.Phe.16Nov.meta$diff_data$inv.x <- 10^pred.Phe.16Nov.meta$diff_data$x
+
+p.comp.diff = ggplot(pred.Phe.16Nov.meta$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000)) +
+              labs(x=expression(Treatment~concentration~(μg~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="a)")
+
+plot.Phe.16Nov.meta.diff.est <- p.comp.diff
+plot.Phe.16Nov.meta.diff.est
+```
+
+
+
+#### NEC subset MANEC
+```{r}
+load("2016.11_Phe_data_meta_filtered.RData")
+load("2016.11_Phe_meta_predvals.RData")
+
+p.NEC= ggplot()
+p.NEC= p.NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Phe.16Nov.meta.PAR.NEC$x, ymin=pred.Phe.16Nov.meta.PAR.NEC$Q2.5, ymax=pred.Phe.16Nov.meta.PAR.NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p.NEC= p.NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.NEC= p.NEC+  geom_ribbon(aes(x=10^pred.Phe.16Nov.meta.UV.NEC$x, ymin=pred.Phe.16Nov.meta.UV.NEC$Q2.5, ymax=pred.Phe.16Nov.meta.UV.NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p.NEC= p.NEC+  scale_fill_manual(values="steelblue")
+
+
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Phe.16Nov.meta.PAR.NEC$x, y=pred.Phe.16Nov.meta.PAR.NEC$Estimate), color = 'grey30', size=0.5)
+p.NEC= p.NEC+ geom_line(aes(x=10^pred.Phe.16Nov.meta.UV.NEC$x, y=pred.Phe.16Nov.meta.UV.NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p.NEC= p.NEC+ geom_point(data = data.Phe.16Nov.meta.PAR.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Phe.16Nov.meta.PAR.raw$tot*0.2, position=position_jitter(width = .025, height=0.03))
+p.NEC= p.NEC+ geom_point(data = data.Phe.16Nov.meta.UV.raw, aes(x = raw.x, y = prop, colour=factor(factor), shape = factor(factor), alpha = 0.3), size = data.Phe.16Nov.meta.UV.raw$tot*0.2, position=position_jitter(width = .025, height=0.03))
+
+
+p.NEC = p.NEC+ labs(x=expression(Concentration~(μg~"L"^{-1})),
+              y=expression(Larval~metamorphosis~("%")),
+              subtitle="c)")
+p.NEC= p.NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.NEC= p.NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.NEC= p.NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p.NEC= p.NEC+ theme(legend.position="none")
+# p.NEC = p.NEC  + theme(legend.position = c(0.9, 0.9))
+p.NEC= p.NEC+ scale_x_continuous(limits = c(0.09, 30000), trans="log10", breaks = c(0.1, 1, 10, 100, 1000, 10000), labels = c(0, 1, 10, 100, 1000, 10000))
+#p.NEC= p.NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot.Phe.16Nov.meta.NEC <- p.NEC
+plot.Phe.16Nov.meta.NEC
+```
+
+```{r}
+load("2016.11_Phe_meta_posterior_comp_NEC.RData")
+
+p.comp.NEC = ggplot(comp.Phe.16Nov.meta.NEC$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.NEC = p.comp.NEC + stat_pointinterval(aes(y=0.00, x=value, group=model),.width=c(.66, .95), size=0.5) +
+  theme_light()
+
+p.comp.NEC = p.comp.NEC + scale_fill_manual(values=c("seagreen", "steelblue"))+
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey")) + theme(legend.position="none")
+p.comp.NEC = p.comp.NEC + theme(panel.grid.major = element_blank(), panel.grid.minor=element_blank(), panel.background=element_blank(), panel.border=element_blank(), axis.line=element_line(colour="grey80"))
+
+p.comp.NEC = p.comp.NEC + scale_y_continuous(limits = c(-0.5, 10), name="Posterior probability density") 
+p.comp.NEC = p.comp.NEC + scale_x_continuous(limits = c(-1.02, 4.3), breaks = c(-1, 0, 1, 2, 3, 4), labels = c(0, 1, 10, 100, 1000, 10000)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.NEC = p.comp.NEC + labs(x=expression(Threshold~concentration~(μg~"L"^{-1})),
+               subtitle="d)")
+
+p.comp.NEC= p.comp.NEC+ annotate("text", label = expression(Probability~of~NEC~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.NEC= p.comp.NEC+ annotate("text", label = "UVR < PAR = 74.51%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename and show plot
+comp.plot.Phe.16Nov.meta.NEC <- p.comp.NEC
+comp.plot.Phe.16Nov.meta.NEC
+```
+
+
+
+
